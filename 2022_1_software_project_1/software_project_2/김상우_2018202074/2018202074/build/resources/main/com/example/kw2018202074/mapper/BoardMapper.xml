@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--xmlversion and encoding type-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--mapper link-->
+<mapper namespace="com.example.kw2018202074.mapper.BoardMapper">
+<!--    mapper place-->
+    <select id="getList" resultType="com.example.kw2018202074.domain.Board">
+        SELECT
+            *
+        FROM tbl_board;
+-- select all elements in database
+    </select>
+<!--get all board list in database-->
+    <select id="getBoard" parameterType="Long" resultType="com.example.kw2018202074.domain.Board">
+        SELECT
+        *
+        FROM tbl_board where boardId=#{boardId};
+-- select board by boardId in database
+    </select>
+<!--search and get board from database-->
+    <insert id="uploadBoard" parameterType="com.example.kw2018202074.domain.Board">
+        <if test = "!(content.isEmpty()) ">
+        <if test = "!(title.isEmpty()) ">
+-- if no input about content or title
+        INSERT INTO tbl_board (title,content,name,read)
+        VALUES
+        (#{title}, #{content}, #{name}, 0);
+-- make and put board that made by input values in database
+        </if>
+        </if>
+    </insert>
+<!--insert board in database-->
+    <update id="updateBoard" parameterType="com.example.kw2018202074.domain.Board">
+        <if test = "!(content.isEmpty()) ">
+        <if test = "!(title.isEmpty()) ">
+-- if no input about content or title
+        UPDATE tbl_board
+        SET title =#{title} , content=#{content}, name=#{name}
+-- change and put board that made by input values in database
+        WHERE boardId=#{boardId};
+        </if>
+        </if>
+    </update>
+<!--update board that have boardId in database-->
+    <update id="updateView" parameterType="Long">
+        UPDATE tbl_board
+        SET read = read + 1
+        WHERE boardId=#{boardId};
+    </update>
+<!--plus 1 to board's view in database-->
+    <delete id="deleteBoard" parameterType="Long">
+        DELETE
+        FROM tbl_board
+        WHERE boardId=#{boardId};
+    </delete>
+<!--delete board that have boardId in database-->
+</mapper>

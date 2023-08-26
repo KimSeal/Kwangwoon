@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<html xmlns xmlns:th="http://www.w3.org/1999/xhtml" : th="http://www.thymeleaf.org">
+<!--to use thymeleaf and xml namebase to xhtml document-->
+<head>
+  <meta charset="UTF-8">
+  <title>Main</title>
+<!--  we use UTF-8 and set title-->
+  <style type="text/css">
+    table {
+      width: 100%;
+      border: 1px solid #444444;
+      border-collapse: collapse;
+    }
+    /*table design*/
+    th, td {
+      border: 1px solid #444444;
+    }
+    /*make border about th td */
+    div{
+      text-align: center;
+    }
+
+  </style>
+</head>
+<body>
+    <div>게시판 리스트</div>
+  <table class="table table-hover" style="margin-left: auto;margin-right: auto">
+    <!--    table style and class-->
+    <thead>
+    <th>글번호</th>
+    <th>제목</th>
+    <th>작성일</th>
+    <th>조회수</th>
+    <!--    format keys about table-->
+    </thead>
+    <tr th:each="i :${#numbers.sequence(list.size()-1,0,-1)}" class="align-text-top">
+      <td th:if="${i<(list.size()-page*8) && i>=(list.size()-page*8-8)}">[[${list[i].boardId}]]</td>
+      <td th:if="${i<(list.size()-page*8) && i>=(list.size()-page*8-8)}">
+        <a th:href="@{/board/view(boardId=${list[i].boardId})}">
+          [[${list[i].title}]]</a></td>
+      <td th:if="${i<(list.size()-page*8) && i>=(list.size()-page*8-8)}">[[${list[i].name}]]</td>
+      <td th:if="${i<(list.size()-page*8) && i>=(list.size()-page*8-8)}">[[${list[i].read}]]</td>
+      <!--      they print elements only range about page-->
+    </tr>
+    <!--    loop and print elements in database-->
+  </table>
+  <div style='position:static;left:50%;'>
+  <nav>
+    <!--    for paging-->
+    <div class="pagination">
+      <tr th:each="i :${#numbers.sequence(0,list.size(),1)}" >
+        <!--        loop for list.size(based database)-->
+      <td  th:if="${i==page && i<((list.size()-1)/8)+1}" class="active"><a style=
+      "color: red;display: inline" href="#">[[${i}+1]]</a></td>
+<!--        </div>-->
+      <td ><a style="display: inline;color: blue" th:if="${i!=page && i<((list.size()-1)/8)+1}" th:href="@{/board/start(page=${i})}">[[${i}+1]]</a></td>
+        <!--        for other pages case(restart after change page)-->
+      </tr>
+    </div>
+  </nav>
+  </div>
+  <div style=" text-align: center;">
+  <button type="button" class="navyBtn" onClick="location.href='upload'">게시글 작성</button>
+    <!--  move to upload html to upload board-->
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns xmlns:th="http://www.w3.org/1999/xhtml" : th="http://www.thymeleaf.org">
+<head>
+  <script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
+  <script src="js/vendor/modernizr-3.8.0.min.js"></script>
+  <script>window.jQuery || document.write('<script src="@{/js/vendor/jquery-3.4.1.min.js}"><\/script>')
+  </script>
+  <!--  script about j query-->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+<!--  take stylesheet-->
+  <meta charset="UTF-8">
+  <title>View</title>
+<!--  use UTF-8 and set Title-->
+</head>
+<body>
+<div style="text-align: center;">
+  <p id="listtitle">[[${view.title}]]</p>
+  <p id="change">조회수 : [[${view.read}]]</p>
+  <p id="title">생성일자 : [[${view.name}]]</p>
+  <p id="title2"></p>                         <!--  print table main keys-->
+</div>
+<div class="container">
+  <div id="content">
+    <textarea readonly="readonly"
+              class="form-control"
+              th:text="${view.content}">
+    </textarea>
+  </div>
+<!--  format to take content input from user-->
+  <div style=" text-align: center;">
+    <button id="back" class="navyBtn display: inline" onClick="location.href='main'">이전으로</button>
+    <button id="updateBtn" class="btn btn-light btn-sm display: inline" >수정</button>
+    <button id="deleteBtn" class="btn btn-light btn-sm display: inline" >삭제</button>
+  </div>
+<!--  button to check return or delete or update-->
+  <form id="form" th:action="@{/}" method="post">
+  </form>
+<!--  to post using input datas-->
+</div>
+<script th:inline="javascript">
+// script base javascript
+  $(document).on('ready',function (e){
+// ready to click button
+    var form= $("#form");
+    var boardId= [[${view.boardId}]];
+    $(document).on('click', '#deleteBtn', function (e){
+      // when click this button
+      $('#form').attr("action","delete");
+      form.append("<input type='hidden' name='boardId' value='"+boardId+"'>");
+      form.append("<input type='hidden' name='_method' value='delete'>");
+      form.submit();
+      // take boardId and delete board using this Id
+    })
+    $(document).on('click','#updateBtn',function (e){
+      //when click this button
+      var str="<input class='form-control' width='250'" +
+              "placeholder='"+[[${view.title}]]+"' id='updateTitle'>";
+      // to take Title from user
+      var str2="<textarea class='form-control' placeholder='"+[[${view.content}]]+"'" +
+              "id='updateContent'></textarea>";
+      // to take content from user
+      var str3=new Date().toISOString().substring(0, 10);
+      //make update time
+      var str4 ="<label class=\"col-sm-2 control-label\">제목</label>"
+      var str5 ="<div>게시판 리스트</div>"
+      var str6= "<label class=\"col-sm-2 control-label\">내용</label>"
+      //print format
+      if(str && str2 && str3 && str4 && str5 &&str6){
+        $("#change").html(str4);
+        $("#listtitle").html(str5);
+        $("#title").html(str);
+        $("#title2").html(str6);
+        $("#content").html(str2);
+        $("#name").html(str3);
+        $("#back").hide();
+        $("#deleteBtn").hide();
+      }
+      //change them to string and hide back, delete button
+      $("#updateBtn").attr("id","updateConfirmBtn");
+      //change update button state
+    })
+    $(document).on('click','#updateConfirmBtn',function (e){
+      //when click this button(after click)
+      $('#form').attr("action","update");
+      //we will update this form
+      var str="<input class='form-control' width='250'" +
+              "placeholder='"+[[${view.title}]]+"' id='updateTitle'>";
+      // to take Title from user
+      var str2="<textarea class='form-control' placeholder='"+[[${view.content}]]+"'" +
+              "id='updateContent'></textarea>";
+      var updateTitle= $('#updateTitle').val();
+      var updateContent=$('#updateContent').val();
+      // variable about user input(title, content)
+      var curd = new Date().toISOString().substring(0, 10);
+      // take year, month, day and input title, contents from user
+      if(updateTitle && updateContent){
+        //if we took title and content from user
+        form.append("<input type='hidden' name='_method' value='put'>");
+        form.append("<input type='hidden' name='boardId' value='"+boardId+"'>");
+        form.append("<input type='hidden' name='title' value='"+updateTitle+"'>");
+        form.append("<input type='hidden' name='content' value='"+updateContent+"'>");
+        form.append("<input type='hidden' name='name' value='"+curd+"'>");
+        form.submit();
+        //save them and update time to board
+      }
+      else{//input title or content is empty
+        $("#content").html(str2);
+        $("#title").html(str);
+        $("#updateBtn").attr("id","updateConfirmBtn");
+        //reset input box and initailize button
+      }
+      //submit them
+    })
+  })
+</script>
+
+</body>
+</html>
