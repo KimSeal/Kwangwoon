@@ -1,0 +1,517 @@
+#include "includes.h"
+#include <time.h>
+
+#define TASK_STK_SIZE 512
+#define N_SOL 5			//max number of soldier
+#define N_ENEMY 5		//max number of monster
+
+#define CREATE_TIME 5	//time to create soldier
+
+#define STOP 0			//state of character objects
+#define GO 1
+#define NOEXIST 2		//before create(Initialize)
+#define DEAD 3			//when hp is zero
+
+#define MAP_SIZE 30		//map size
+
+#define N_MSG 100		//to message queue
+
+#define TICK 2			//clock timing
+
+#define Xposition 11	//to screen control
+#define TURM 3			//distance between object
+
+
+OS_STK TaskStk[TASK_STK_SIZE];	//Stack for 
+OS_STK CrtStk[TASK_STK_SIZE];
+OS_STK SolStk[TASK_STK_SIZE];
+OS_STK EnemyStk[TASK_STK_SIZE];
+OS_STK ScreenStk[TASK_STK_SIZE];
+
+OS_EVENT* sem;				//semaphore about creator
+OS_EVENT* message_sem;		//semaphore about sol attack enemy
+OS_EVENT* message_sem2;		//semaphore about enemy attack enemy
+OS_EVENT* money_sem;		//semaphore about money
+OS_EVENT* map_sem;		//semaphore about map
+
+
+OS_EVENT* start_space;		//semaphore about soldier start position
+OS_EVENT* end_space;		//semaphore about enemy start position
+
+OS_EVENT* msg_q;	//queue for damage about sol attack enemy
+OS_EVENT* msg_q2;	//queue for damage about enemy attack sol
+
+void* msg_array[N_MSG];		//array about sol attack enemy
+void* msg_array2[N_MSG];	//array about enemy attack sol
+
+
+void moneychk(void* pdata);	//main control task
+void solCreate(void* pdata);//creator control task
+void solMove(void* pdata);	//soldier control task
+void enemyMove(void* pdata);//enemy control task
+void Screen(void* pdata);	//screen control task
+
+typedef struct {	//struct for character object (soldier, enemy)
+	INT8U job;		//check soldier/enemy
+	INT8U power;	//attack power
+	INT8U hp;		//remain health point
+	INT8U posX;		//current position about this object
+	INT8U state;	//stop/go/noexist check
+}CHARACTER_INFO;
+
+//array about screen postion
+INT8U map[30] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+INT8U mapx[30] = { 7,8,9,10,11,12,13,14,14,14,14,14,13,12,11,10,9,8,7,7,7,7,7,8,9,10,11,12,13,14 };
+INT8U mapy[30] = { 2,2,2,2,2,2,2,2,3,4,5,6,6,6,6,6,6,6,6,7,8,9,10,10,10,10,10,10,10,10 };
+
+//money variable
+INT8U money = 0;
+
+INT8U kill_Count = 0;		//number of dead enemy
+INT8U max_creator = 3;		//number of max creator
+INT8U creator[7] = { 0,0,0,0,0,0,0 }; //[0] is working creator [1]~[6]: state of creator
+INT8U solPower[4] = { 0,2,4,8 };	//soldier power&hp set
+
+INT8U sol_num = 0;	//current number of soldier
+INT8U enemy_num = 0;//current number of enemy
+
+INT8U sol_money = 0;	//used money to current soldier
+CHARACTER_INFO SolInfo[5];	//character information array
+CHARACTER_INFO EnemyInfo[5];
+
+INT8U err;		//about creator
+INT8U msg_err;	//about sol message
+INT8U msg_err2;	//about enemy message
+INT8U money_err;//about money
+INT8U map_err;	//about map
+
+INT8U gameOver = 0;	//game over/clear check
+INT8U gameClear = 0;
+
+void dead_Event(CHARACTER_INFO* arr) {	//when character dead, control array about characters
+	INT8U i;
+	for (i = 0; i < N_SOL - 1; i++) {	//delete first object
+		arr[i].state = arr[i + 1].state;
+		arr[i].power = arr[i + 1].power;
+		arr[i].hp = arr[i + 1].hp;
+		arr[i].posX = arr[i + 1].posX;
+	}
+	arr[N_SOL - 1].state = NOEXIST;		//last of array will be empty
+	arr[N_SOL - 1].posX = 50;
+}
+
+int main(void)
+{
+	INT8U init;
+	OSInit();						//OS init
+	sem = OSSemCreate(1);			//semaphore initialize(about many task used)
+	message_sem = OSSemCreate(1);	
+	message_sem2 = OSSemCreate(1);
+	money_sem = OSSemCreate(1);
+	map_sem = OSSemCreate(1);
+
+	start_space = OSSemCreate(1);	//semaphore initialize(space)
+	end_space = OSSemCreate(1);
+
+	msg_q = OSQCreate(msg_array, (INT16U)N_MSG);	//set array to use message queue
+	msg_q2 = OSQCreate(msg_array2, (INT16U)N_MSG);
+
+	if (msg_q == 0) {							//when message queue creating failed
+		printf("creating msg_q is failed\n");
+		return -1;								//error
+	}
+	if (msg_q2 == 0) {
+		printf("creating msg_q2 is failed\n");
+		return -1;								//error
+	}
+
+	for (init = 0; init < N_SOL; init++) {		//initialize array about soldier and enemy
+		SolInfo[init].state = NOEXIST;			//when game start, every soldier is not exist
+		SolInfo[init].posX = 50;
+
+	}
+	for (init = 0; init < N_ENEMY; init++) {	//initialize array about soldier and enemy
+		EnemyInfo[init].state = NOEXIST;		//when game start, every enemy is not exist
+		EnemyInfo[init].posX = 50;
+
+	}
+	OSTaskCreate(moneychk, (void*)0, &TaskStk[TASK_STK_SIZE - 1], 10);	//every task create
+	OSTaskCreate(solCreate, (void*)0, &CrtStk[TASK_STK_SIZE - 1], 20);
+	OSTaskCreate(solMove, (void*)0, &SolStk[TASK_STK_SIZE - 1], 40);
+	OSTaskCreate(enemyMove, (void*)0, &EnemyStk[TASK_STK_SIZE - 1], 30);
+	OSTaskCreate(Screen, (void*)0, &ScreenStk[TASK_STK_SIZE - 1], 50);
+
+	OSStart();			//OS start
+	return 0;
+}
+
+//main control Function : game clear/over check, and creator check 
+void moneychk(void* pdata) {	
+	int turn = 0;				//turn control
+	INT8U i;					//for repeat
+	for (; turn <100; turn++) {	//game running during limited turn
+		OSSemPend(money_sem, 0, &money_err);
+		money++;				//add money each turn
+		OSTaskSuspend(30);		//pause enemy move
+
+		if (gameClear == 1) {	//when game clear
+			OSTaskDel(40);		//tasks about objects are end
+			OSTaskDel(30);		
+			OSTaskDel(20);
+			OSTaskSuspend(OSTCBCur->OSTCBPrio);//and pause self
+		}
+		else if (gameOver == 1) {//when game over
+			OSTaskDel(40);		//tasks about objects are end
+			OSTaskDel(30);
+			OSTaskDel(20);
+			OSTaskSuspend(OSTCBCur->OSTCBPrio);//and pause self
+		}
+		sol_money = 0;					//next soldier value(when it can't, this value is 0)
+		if (creator[0] < max_creator) {	//search creator that is empty
+			if (money >= solPower[3]) {	  //make level3 soldier
+				sol_money = solPower[3];	//value = power
+			}
+			else if (money >= solPower[2]) {//make level2 soldier
+				sol_money = solPower[2];
+
+			}
+			else if (money >= solPower[1]) {//make level1 soldier
+				sol_money = solPower[1];
+			}
+		}
+		OSSemPost(money_sem);
+		OSTimeDly(TICK);	//pause this task
+
+	}
+}
+
+//creator control task 
+void solCreate(void* pdata) {
+	for (;;) {
+		INT8U empty;		//variable nearst creator
+		empty = 7;			//when empty creator is not exist
+		INT8U i;			//variable to repeat
+
+		OSSemPend(sem, 0, &err);	//semaphore about creator
+
+		for (i = max_creator; i > 0; i--) {	 //find nearest empty creator
+			if (creator[i] == 0) {	// when creator empty
+				empty = i;
+			}
+			else {					//when creator is not empty
+				if (creator[i]%10 <= CREATE_TIME) {	//if they need to working
+					creator[i]++;					//add their number to make soldier
+				}
+			}
+		}
+		//when empty creator exist and we have money to create him
+		OSSemPend(money_sem, 0, &money_err);
+		if (empty != 7 && money >= sol_money && sol_money != 0) {	
+			money = money - sol_money;			//use moeny
+			creator[empty] = (sol_money==8) ? 21 :(sol_money==4) ? 11 : 1;	//make soldier according to order
+			creator[0]++;						//add number of running creater
+
+		}
+		OSSemPost(money_sem);
+
+		OSSemPost(sem);				//release about creator
+		OSTimeDly(TICK);			//pause this task
+
+	}
+}
+
+//task about soldier every movement (move&attak&die)
+//and release soldier from creator
+void solMove(void* pdata) {
+	INT8U i;		//variable to repeat
+	void* msg;		//variable for message queue
+	INT8U atk_err, dmg_err;	
+	OS_Q_DATA q_data;	//data that will be cross queue
+	INT8U* message_Box;	//to take message from enemyMove task
+
+	for (;;) {
+		OSSemPend(map_sem, 0, &map_err);
+		for (i = 0; i < 5; i++) {//soldier walk and attack
+			//if object road is blocked and this object is exist
+			if (map[(SolInfo[i].posX) + 1] != 0 && SolInfo[i].state != NOEXIST) {
+				SolInfo[i].state = STOP;	//stop this object
+			}
+			else if (SolInfo[i].state != NOEXIST) {	//when road is not blocked
+				SolInfo[i].state = GO;				//move this object
+			}
+			//if object meet enemy
+			if (SolInfo[i].state == STOP && map[(SolInfo[i].posX) + 1] > 5) {
+				//set message that have his power
+				msg = &((INT8U)(SolInfo[i].power));
+				atk_err = OSQPost(msg_q, msg);
+				while (atk_err != OS_NO_ERR) {
+					atk_err = OSQPost(msg_q, msg);
+				}
+			}
+			else if (SolInfo[i].state == GO) {	//when we can go
+				if (SolInfo[i].posX == 0) {		//and this soldier is on create place
+					OSSemPost(start_space);		//post this place to next create soldier
+				}
+				OSSemPend(message_sem, 0, &msg_err);	//lock message queue used semaphore
+
+				map[(SolInfo[i].posX)] = 0;				//run out from current place
+				SolInfo[i].posX++;						//and move to next position
+				map[(SolInfo[i].posX)] = 1;
+				//when meet enemy after movem
+				if (map[(SolInfo[i].posX) + 1] > 5) {
+					INT8U zero_box = 0;			//attack but damage is 0
+					msg = &((INT8U)zero_box);
+					SolInfo[i].state = STOP;
+					atk_err = OSQPost(msg_q, msg);
+					while (atk_err != OS_NO_ERR) {
+						atk_err = OSQPost(msg_q, msg);
+					}
+				}
+				OSSemPost(message_sem);	//release message queue
+			}
+			if (map[29] == 1) {			//when object take end place
+				gameClear = 1;
+			}
+		}
+		OSSemPost(map_sem);
+		OSTaskResume(30);							//resume enemy control task
+		OSSemPend(map_sem, 0, &map_err);
+		//if soldier is damaged from enemy
+		if (map[(SolInfo[0].posX) + 1] > 5 && SolInfo[0].state == STOP) {
+			//take message queue
+			OSSemPend(message_sem2, 0, &msg_err2);
+			//take damage from enemy
+			OSQQuery(msg_q2, &q_data);
+			msg = OSQPend(msg_q2, 0, &dmg_err);
+			message_Box = msg;
+			//calculate damage and check hp
+			SolInfo[0].hp = (SolInfo[0].hp > *message_Box) ? SolInfo[0].hp - *message_Box : 0;
+			//when soldier dead, do die event
+			if (SolInfo[0].hp == 0) {
+				map[SolInfo[0].posX] = 0;//this place will be empty
+				dead_Event(SolInfo);
+				sol_num--;				//minus number of soldier
+			}
+			OSSemPost(message_sem2);	//release message queue
+
+		}
+		INT8U value;								//to semphore about start place
+		INT8U cutit;
+		cutit = 0;
+		for (i = 1; i <= max_creator; i++) {		//check creator complete
+			if (creator[i] > CREATE_TIME && sol_num < N_SOL && cutit==0) {		//check creator complete
+				value = OSSemAccept(start_space);	//try to make soldier at start place
+				if (value > 0) {					//only one object exist on create place
+					OSSemPend(sem, 0, &err);		//get semaphore about creator
+
+					//soldier set according about used money
+					SolInfo[sol_num].job = 0;
+					SolInfo[sol_num].power = (creator[i] / 10 == 2) ? solPower[3] : (creator[i] / 10 == 1) ? solPower[2] : solPower[1];	//
+					SolInfo[sol_num].hp = (creator[i] / 10 == 2) ? solPower[3] : (creator[i] / 10 == 1) ? solPower[2] : solPower[1];	//
+					//after making this soldier will move immediately
+					SolInfo[sol_num].state = GO;
+					SolInfo[sol_num].posX = 0;		//position initial set
+					sol_num++;						//number of soldier is added
+					creator[i] = 0;					//make creator empty
+					creator[0]--;					//minus number of working creator
+					map[0] = 1;						//block start_space
+					cutit = 1;
+					OSSemPost(sem);					//release creator 
+					
+				}
+			}
+		}
+		OSSemPost(map_sem);
+		OSTimeDly(TICK);				//do delay
+	}
+}
+//task about enemy every movement (move&attak&die)
+//and creator enemy
+void enemyMove(void* pdata) {
+	void* msg;					//variable for message	
+	INT8U atk_err, dmg_err;		//variable to make semaphore about atk & damage
+	OS_Q_DATA q_data;			//queue data variable
+
+	INT8U i;
+	INT8U* message_Box;			//save soldier power
+	INT8U enemydelay = 0;		//current time about create enemy
+	for (;;) {
+		OSSemPend(map_sem, 0, &map_err);
+		srand(time(NULL));		//to randome
+
+		for (i = 0; i < 5; i++) {	//repeat about all enemy
+			//if object road is blocked and this object is exist
+			if (map[(EnemyInfo[i].posX) - 1] != 0 && EnemyInfo[i].state != NOEXIST) {	//if object is here
+				EnemyInfo[i].state = STOP;	//stop this enemy's movement
+			}
+			else if (EnemyInfo[i].state != NOEXIST) { //when road is empty
+				EnemyInfo[i].state = GO;			//move enemy
+			}
+			//if enemy meet soldier
+			if (map[(EnemyInfo[i].posX) - 1] <= 5 && EnemyInfo[i].state == STOP) {
+				OSSemPend(message_sem, 0, &msg_err);//lock message queue
+				//lock message about soldier damage from soldier
+				OSQQuery(msg_q, &q_data);
+				msg = OSQPend(msg_q, 0, &dmg_err);
+				message_Box = msg;
+				EnemyInfo[i].hp = (EnemyInfo[i].hp > *message_Box) ? EnemyInfo[i].hp - *message_Box : 0;
+				//and change object's hp
+				OSSemPost(message_sem);
+				//release message queue about soldier damage
+				
+				//lock message about enemy damage to soldier
+				OSSemPend(message_sem2, 0, &msg_err2);
+				//when this object dead
+				if (EnemyInfo[i].hp == 0) {
+					EnemyInfo[i].power = 0;
+					msg = &(EnemyInfo[i].power);			//send this object's power
+					atk_err = OSQPost(msg_q2, msg);
+					while (atk_err != OS_NO_ERR) {
+						atk_err = OSQPost(msg_q2, msg);
+					}
+					OSSemPend(money_sem, 0, &money_err);
+					money += 6;			//get additional money
+					OSSemPost(money_sem);
+
+					kill_Count++;		//add kill count
+					if (kill_Count>4 && max_creator<6) {	//when player kill 5 enemy,
+						kill_Count = 0;						//initialize kill count
+						max_creator++;						//add new creator
+					}
+					map[EnemyInfo[i].posX] = 0;				//clean this place
+					dead_Event(EnemyInfo);					//dead event
+					enemy_num--;							//minus number of current enemy
+
+				}
+				else {										//when this object live
+					msg = &(EnemyInfo[i].power);			//send this object's power
+					atk_err = OSQPost(msg_q2, msg);
+					while (atk_err != OS_NO_ERR) {
+						atk_err = OSQPost(msg_q2, msg);
+					}
+				}
+				OSSemPost(message_sem2);					//release enemy attack message queue
+			}
+			else if (EnemyInfo[i].state == GO) {			//when enemy can go
+				if (EnemyInfo[i].posX == (MAP_SIZE - 1)) {	//and this soldier is on create place
+					OSSemPost(end_space);					//post this place to next create soldier
+				}
+				map[(EnemyInfo[i].posX)] = 0;				//empty this place
+				EnemyInfo[i].posX--;						//move to next
+				map[(EnemyInfo[i].posX)] = 9;				
+			}
+			if (map[0] == 9) {								//when enemy take start_place
+				gameOver = 1;
+			}
+		}
+		INT8U value;
+		if (enemy_num < N_ENEMY && enemydelay >= 5) {		//check creator complete
+			value = OSSemAccept(end_space);					//try to make enemy on end_place
+			if (value > 0) {								//only one object exist on create place
+				EnemyInfo[enemy_num].job = 1;				//this object is enemy
+				EnemyInfo[enemy_num].state = GO;			//after making, this enemy move immediately
+				EnemyInfo[enemy_num].power = (rand() % 9)+1;	//power and hp is random
+				EnemyInfo[enemy_num].hp = (rand() % 9)+1;	//
+
+				EnemyInfo[enemy_num].posX = MAP_SIZE - 1;		//position initial set
+				enemy_num++;								//add number of enemy
+				map[MAP_SIZE - 1] = 9;						//take that place
+				enemydelay = 0;								//initalize enemy create timing
+			}
+		}
+		enemydelay++;		//enemy delay add
+		OSSemPost(map_sem);
+		OSTimeDly(TICK);	//pause this task
+	}
+}
+
+//to make main screen
+void Screen(void* pdata) {
+	char moneychar[100];	//to write string
+	for (;;) {
+		if (gameClear == 1 || gameOver==1){	//when game finished
+			break;							//stop this task 
+		}
+		
+		INT8U i;
+		for (int i = 0; i < 25; i++) {//erase all thing before draw
+			PC_DispStr(0, i, "                                             ", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		}
+		//make string to write current money
+		sprintf(moneychar, "    money: %d", money);
+		//write current money
+		PC_DispStr(13, 0, moneychar, DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		//draw all creator
+		for (int i = 1; i < 7;i++) {
+			if (i>max_creator) {	//creator that couldn't be used
+				PC_DispStr(3 * i+11, 1, "■", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			}
+			else {					//creator that could be used
+				PC_DispStr(3 * i+11, 1, "■", (creator[i] == 0) ? DISP_FGND_RED + DISP_BGND_LIGHT_GRAY : (creator[i]%10 > CREATE_TIME) ? DISP_FGND_GREEN + DISP_BGND_LIGHT_GRAY : DISP_FGND_YELLOW + DISP_BGND_LIGHT_GRAY);
+			}
+		}
+		//draw wall(trees)
+		for (int i = 0; i < 3;i++) {
+			PC_DispStr(6* TURM - Xposition, 3+i, "♧", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(15 * TURM - Xposition, 3 + i, "♧", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(15 * TURM - Xposition, 6 + i, "♧", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(6 * TURM - Xposition, 11 + i, "♣", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(6 * TURM - Xposition, 8 + i, "♣", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(15 * TURM - Xposition, 11 + i, "♣", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		}
+		PC_DispStr(42 - Xposition, 3, "♧", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		PC_DispStr(7* TURM -Xposition, 13, "♣", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		PC_DispStr(7* TURM -Xposition, 4, "◇", DISP_FGND_WHITE + DISP_BGND_LIGHT_GRAY);
+		PC_DispStr(14* TURM -Xposition, 12, "◆", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+
+		for (int i = 7; i < 14; i++) {
+			PC_DispStr(i*TURM - Xposition,3, "♧", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(i*TURM - Xposition, 5, "♧", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(i*TURM - Xposition, 7, "♧", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+
+			PC_DispStr((i+1)*TURM - Xposition, 9, "♣", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr((i + 1)*TURM - Xposition, 11, "♣", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr((i + 1)*TURM - Xposition, 13, "♣", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		}
+
+		for (int i = 0; i < sol_num; i++) {	//draw about soldiers include information
+											//star:strong / round:middle / triangle:weak
+											//green: healthy / yellow:middle / red: hurt
+			PC_DispStr(mapx[SolInfo[i].posX]* TURM -Xposition, mapy[SolInfo[i].posX]+2,
+			(SolInfo[i].power > 5) ? "☆" : (SolInfo[i].power > 2) ? "○" : "△",
+			(SolInfo[i].hp > 5) ? DISP_FGND_GREEN + DISP_BGND_LIGHT_GRAY : (SolInfo[i].hp > 2) ? DISP_FGND_YELLOW + DISP_BGND_LIGHT_GRAY : DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+			//write current soldier statement
+			sprintf(moneychar, "Soldier %d || where: %d | power : %d | hp :%d", i, SolInfo[i].posX, SolInfo[i].power, SolInfo[i].hp);
+			PC_DispStr(2, 14+i, moneychar, DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		}
+		PC_DispStr(2, 19, "=========================================", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+
+		for (int i = 0; i < enemy_num; i++) {//draw about enemy include information
+											//star:strong / round:middle / triangle:weak
+											//green: healthy / yellow:middle / red: hurt
+			PC_DispStr(mapx[EnemyInfo[i].posX] * TURM - Xposition, mapy[EnemyInfo[i].posX] + 2,
+			(EnemyInfo[i].power > 5) ? "★" : (EnemyInfo[i].power > 2) ? "●" : "▲",
+			(EnemyInfo[i].hp > 5) ? DISP_FGND_GREEN + DISP_BGND_LIGHT_GRAY : (EnemyInfo[i].hp > 2) ? DISP_FGND_YELLOW + DISP_BGND_LIGHT_GRAY : DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+			//write current enemy statement
+			sprintf(moneychar, "Enemy   %d || where: %d | power : %d | hp :%d", i,EnemyInfo[i].posX, EnemyInfo[i].power, EnemyInfo[i].hp);
+			PC_DispStr(2, 20 + i, moneychar, DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		}
+		//delay to make screen
+		OSTimeDly(TICK);
+	}
+	//when game finished
+	for (;;) {
+		//draw line to write game clear/over
+		PC_DispStr(0, 8, "                                             ", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		PC_DispStr(2, 7, "=========================================", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		PC_DispStr(2, 9, "=========================================", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		//write game result
+		if (gameClear == 1) {
+			PC_DispStr(9 * TURM - Xposition+2, 8, "GAME CLEAR!", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		}
+		if (gameOver == 1) {
+			PC_DispStr(9 * TURM - Xposition+2, 8, "GAME OVER!!", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		}
+		OSTaskSuspend(OSTCBCur->OSTCBPrio);
+	}
+}
