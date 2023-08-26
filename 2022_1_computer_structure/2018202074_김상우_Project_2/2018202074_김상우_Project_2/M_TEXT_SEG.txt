@@ -1,0 +1,85 @@
+00111100_00000010_00010010_00110100
+00110100_01000011_01010110_01111000
+00111100_00000100_10011010_10111100
+00110100_10000101_11011110_11110000
+
+000000_00101_00011_00101_00000_100011	//sub r5-r3              result:r5=0x88888878
+000000_00011_00101_00110_00000100110	//xor r3,r5	   result:r6=0x9ABCDE00
+000000_00000_00011_00101_11111_000011	//sra  r3 >>31 =>r5  result:r5=0x00000000
+000101_00011_00101_00000000_00000001	//bne r3!=r5	   result:next pc=0x00000024
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+000110_00101_00000_00000000_00000001	//blez r5<=0	result:next pc=0x0000002C
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+001100_00011_00101_01000010_01111000	//andi r3,imme      result:e5=0x00004278
+
+101000_00011_00101_0000000000001000	//sb r5 in memory[r3]	    
+100100_00011_00101_0000000000001000	//lbu r5 from memory[r3]	    result:r5=0x00000078
+001011_00011_01001_00000000_11111111	//sltiu if r3<0x00FF put 1 to r9  result:r9=0x00000000
+000000_01001_00000_00000000_00001001	//jalr //save pc and jump to r9  result:next pc=0x00000000
+
+00000000_00000000_00000000_00001101	//break;   
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx
+
