@@ -1,0 +1,1416 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 AREA             ARMex, Code, READONLY
+    2 00000000                 ENTRY
+    3 00000000         start
+    4 00000000 E59F0844        LDR              r0, address1
+    5 00000004 E59F1890        LDR              r1, =Matrix_data
+    6 00000008 E4913004        LDR              r3, [r1], #4 ;size check
+    7 0000000C E59F0834        LDR              r0, address0
+    8 00000010 E4803004        STR              r3, [r0], #4 ;save size
+    9 00000014 E3A04000        MOV              r4, #0      ;varialbe of number
+                                                            
+   10 00000018 E3A05000        MOV              r5, #0      ;size*size
+   11 0000001C E1A0E00F        MOV              lr, pc
+   12 00000020 EA000114        B                SIZECAL     ;make size*size
+   13 00000024 E3A04000        MOV              r4, #0
+   14 00000028 E59F081C        LDR              r0, address1
+   15 0000002C E1A0E00F        MOV              lr, pc
+   16 00000030 EA000115        B                INITLOOP    ;put data in main m
+                                                            atrix
+   17 00000034 E59F0814        LDR              r0, Result_data
+   18 00000038 E3A06000        MOV              r6, #0
+   19 0000003C E3A04000        MOV              r4, #0
+   20 00000040 E1A0E00F        MOV              lr, pc
+   21 00000044 EA000116        B                INITLOOP2   ;put data in sub ma
+                                                            trix
+   22 00000048 E1A07103        MOV              r7, r3, LSL #2 ;length between 
+                                                            same column content
+                                                            s
+   23 0000004C E2878004        ADD              r8, r7, #4  ;length between Aij
+                                                            (i=j) contents
+   24 00000050 E3A06000        MOV              r6, #0
+   25 00000054 E3A04000        MOV              r4, #0
+   26 00000058 E59F07EC        LDR              r0, address1 ;main Matrix that 
+                                                            added
+   27 0000005C E59F17E8        LDR              r1, address1 ;main Matrix that 
+                                                            add
+   28 00000060 E59F87E8        LDR              r8, Result_data ; Sub Matrix th
+                                                            at added
+   29 00000064 E59FA7E4        LDR              r10, Result_data ; Sub Matrix t
+                                                            hat add
+   30 00000068         LINECHANGE
+   31 00000068 E7909104        LDR              r9, [r0, r4, LSL #2] 
+                                                            ;Aii Data check
+   32 0000006C E3590000        CMP              r9, #0
+   33 00000070 E59FC7D0        LDR              r12, address0
+   34 00000074 E48C3004        STR              r3, [r12], #4
+   35 00000078 E48C4004        STR              r4, [r12], #4
+   36 0000007C E48C5004        STR              r5, [r12], #4
+   37 00000080 E48C0004        STR              r0, [r12], #4
+   38 00000084 E48CA004        STR              r10, [r12], #4
+   39 00000088         ;size, current column, size*size, current address, secon
+                       d matrix
+   40 00000088 059F87C0        LDREQ            r8, Result_data
+   41 0000008C 0A000005        BEQ              FINDline    ;find add file
+   42 00000090 E2844001        ADD              r4, #1
+   43 00000094 E0800103        ADD              r0, r3, LSL #2
+   44 00000098 E08AA103        ADD              r10, r3, LSL #2
+   45 0000009C         
+   46 0000009C E1540003        CMP              r4, r3
+   47 000000A0 AA00003B        BGE              ENDSORT     ;End sort
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   48 000000A4 EAFFFFEF        B                LINECHANGE  ;Do Linechange
+   49 000000A8         FINDline
+   50 000000A8 E1A06104        MOV              r6, r4, LSL #2 ;go to Aii
+   51 000000AC E791B006        LDR              r11, [r1, r6] 
+                                                            ;check Aii equal 0
+   52 000000B0 E35B0000        CMP              r11, #0
+   53 000000B4 E58C7000        STR              r7, [r12]
+   54 000000B8 12433001        SUBNE            r3, #1
+   55 000000BC E58C4004        STR              r4, [r12, #4]
+   56 000000C0 E58C1008        STR              r1, [r12, #8]
+   57 000000C4 E58C300C        STR              r3, [r12, #12] ;count garo
+   58 000000C8 E58C8010        STR              r8, [r12, #16] ;address of add 
+                                                            line
+   59 000000CC 1A000002        BNE              ADDline
+   60 000000D0 00811007        ADDEQ            r1, r1, r7  ;Mov to next main m
+                                                            atrix column
+   61 000000D4 00888007        ADDEQ            r8, r8, r7  ;Mov to next sub  m
+                                                            atrix column
+   62 000000D8         
+   63 000000D8 EAFFFFF2        B                FINDline
+   64 000000DC         ADDline
+   65 000000DC E1A06103        MOV              r6, r3, LSL #2
+   66 000000E0 E7982006        LDR              r2, [r8, r6] ;added sub Matrix 
+                                                            column content call
+                                                            
+   67 000000E4 E79A1006        LDR              r1, [r10, r6] ;add   sub Matrix
+                                                             column content cal
+                                                            l
+   68 000000E8         
+   69 000000E8 E1A0E00F        MOV              lr, pc
+   70 000000EC EA000196        B                ADD         ;add them
+   71 000000F0 E59FB750        LDR              r11, address0
+   72 000000F4 E59B3020        LDR              r3, [r11,#32] ;save x point
+   73 000000F8 E59B8024        LDR              r8, [r11,#36] ;save address tha
+                                                            t added sub Matrix
+   74 000000FC E59BA010        LDR              r10, [r11,#16] ;save address th
+                                                            at add sub Matrix
+   75 00000100         
+   76 00000100 E59B101C        LDR              r1, [r11,#28] ;addMain Matrix c
+                                                            olumn content call
+   77 00000104 E59B000C        LDR              r0, [r11,#12] ;added Main Matri
+                                                            x column content ca
+                                                            ll
+   78 00000108         
+   79 00000108 E1A06103        MOV              r6, r3, LSL #2
+   80 0000010C E78AC006        STR              r12, [r10, r6] ;save add result
+                                                            
+   81 00000110         
+   82 00000110 E58B3020        STR              r3, [r11, #32] ;save x point
+   83 00000114 E58B8024        STR              r8, [r11, #36] ;save address th
+                                                            at added sub Matrix
+                                                            
+   84 00000118 E58BA010        STR              r10, [r11, #16] ;save address t
+                                                            hat add sub Matrix
+   85 0000011C         
+   86 0000011C E1A06103        MOV              r6, r3, LSL #2
+   87 00000120 E7912006        LDR              r2, [r1, r6] ;call added value
+   88 00000124 E7901006        LDR              r1, [r0, r6] ;call add value
+   89 00000128 E1A0E00F        MOV              lr, pc
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   90 0000012C EA000186        B                ADD         ;add them
+   91 00000130         
+   92 00000130 E59FB710        LDR              r11, address0
+   93 00000134 E59B3020        LDR              r3, [r11,#32] ;call value to sa
+                                                            ve added value and 
+                                                            address
+   94 00000138 E59B101C        LDR              r1, [r11,#28]
+   95 0000013C E59B000C        LDR              r0, [r11,#12]
+   96 00000140         
+   97 00000140 E1A06103        MOV              r6, r3, LSL #2
+   98 00000144         
+   99 00000144 E780C006        STR              r12, [r0, r6] ;save added value
+                                                            
+  100 00000148 E3530000        CMP              r3, #0      ;if add line end
+  101 0000014C 12433001        SUBNE            r3 ,#1
+  102 00000150 E58B3020        STR              r3, [r11, #32] ;save values tha
+                                                            t address or things
+                                                             to save 
+  103 00000154 E58B101C        STR              r1, [r11, #28]
+  104 00000158 E58B000C        STR              r0, [r11, #12]
+  105 0000015C         
+  106 0000015C E59B8024        LDR              r8, [r11,#36] ;call values abou
+                                                            t sub matrix
+  107 00000160 E59BA010        LDR              r10, [r11,#16]
+  108 00000164         
+  109 00000164 0A000000        BEQ              Linefinish
+  110 00000168 EAFFFFDB        B                ADDline
+  111 0000016C         Linefinish
+  112 0000016C E59FB6D4        LDR              r11, address0 ;reset values
+  113 00000170 E59B3000        LDR              r3, [r11]   ;size
+  114 00000174 E59B4004        LDR              r4, [r11, #4]
+  115 00000178 E59B5008        LDR              r5, [r11, #8]
+  116 0000017C E59B101C        LDR              r1, [r11, #28]
+  117 00000180 E59B000C        LDR              r0, [r11, #12]
+  118 00000184 E59B7014        LDR              r7, [r11, #20]
+  119 00000188 E59F16BC        LDR              r1, address1
+  120 0000018C E59FA6BC        LDR              r10, Result_data
+  121 00000190 EAFFFFB4        B                LINECHANGE  ;go Linechange to s
+                                                            ort other lines
+  122 00000194         ENDSORT
+  123 00000194 E59F06AC        LDR              r0, address0
+  124 00000198 E59F16AC        LDR              r1, address1
+  125 0000019C E4803004        STR              r3, [r0], #4 ;save size
+  126 000001A0 E3A04000        MOV              r4, #0      ;reset column value
+                                                            
+  127 000001A4 E4804004        STR              r4, [r0], #4 ;column
+  128 000001A8 E1A05103        MOV              r5, r3, LSL #2
+  129 000001AC E5805000        STR              r5, [r0]    ;length between one
+                                                             column
+  130 000001B0         GAUSS
+  131 000001B0 E59F0690        LDR              r0, address0
+  132 000001B4 E59F1690        LDR              r1, address1 ;Ai0
+  133 000001B8 E59F2690        LDR              r2, Result_data ;Bi0
+  134 000001BC E5903000        LDR              r3, [r0]    ;size
+  135 000001C0         
+  136 000001C0 E1530004        CMP              r3, r4      ;size=column
+  137 000001C4 0A0001B3        BEQ              GOEND       ;end of Gauss
+  138 000001C8         
+  139 000001C8 E5904004        LDR              r4, [r0, #4] ;column
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  140 000001CC E5905008        LDR              r5, [r0, #8] ;length between on
+                                                            e column
+  141 000001D0         
+  142 000001D0 E59F7674        LDR              r7, address1 ;we will make Aii
+  143 000001D4 E1A06104        MOV              r6, r4, LSL #2 ;column*4
+  144 000001D8 E0877006        ADD              r7, r6      ;A0i
+  145 000001DC E1A0E00F        MOV              lr, pc
+  146 000001E0 EA000008        B                GAUSS2      ;make Aii, Ai0, Bi0
+                                                            
+  147 000001E4 E580100C        STR              r1, [r0, #12] 
+                                                            ;put Aio in memory
+  148 000001E8 E5802010        STR              r2, [r0, #16] 
+                                                            ;put Bio in memory
+  149 000001EC E5807014        STR              r7, [r0, #20] 
+                                                            ;put Aii in memory
+  150 000001F0 E3A08000        MOV              r8, #0
+  151 000001F4 E5808018        STR              r8, [r0, #24] ;to div line cont
+                                                            ents
+  152 000001F8 E5907018        LDR              r7, [r0,#24]
+  153 000001FC         
+  154 000001FC E5902014        LDR              r2, [r0, #20] ;make r2
+  155 00000200 E5922000        LDR              r2, [r2]
+  156 00000204         
+  157 00000204 EA000006        B                LINEDIV
+  158 00000208         
+  159 00000208         ;ADD r4, #1
+  160 00000208         GAUSS2
+  161 00000208 E3540000        CMP              r4, #0
+  162 0000020C 01A0F00E        MOVEQ            pc, lr
+  163 00000210 10811005        ADDNE            r1, r5      ;go to Ai0
+  164 00000214 10877005        ADDNE            r7, r5      ;go to Aii
+  165 00000218 10822005        ADDNE            r2, r5      ;go to Bi0
+  166 0000021C E2444001        SUB              r4, #1
+  167 00000220 EAFFFFF8        B                GAUSS2
+  168 00000224         LINEDIV
+  169 00000224 E5908000        LDR              r8, [r0]
+  170 00000228 E1570008        CMP              r7, r8
+  171 0000022C 03A07000        MOVEQ            r7, #0
+  172 00000230 0A000019        BEQ              GAUSS3
+  173 00000234         
+  174 00000234 E590100C        LDR              r1, [r0, #12]
+  175 00000238 E1A03107        MOV              r3, r7, LSL #2
+  176 0000023C E0811003        ADD              r1, r3      ;make r1
+  177 00000240 E5911000        LDR              r1, [r1]
+  178 00000244 E1A0E00F        MOV              lr, pc
+  179 00000248 EA00009F        B                DIV         ;Div that
+  180 0000024C         
+  181 0000024C E5907018        LDR              r7, [r0, #24]
+  182 00000250 E590100C        LDR              r1, [r0, #12]
+  183 00000254 E1A04107        MOV              r4, r7, LSL #2
+  184 00000258 E0811004        ADD              r1, r4      ;make A's line
+  185 0000025C E5813000        STR              r3, [r1]    ;and save div value
+                                                             in line
+  186 00000260         
+  187 00000260 E5901010        LDR              r1, [r0, #16]
+  188 00000264 E1A03107        MOV              r3, r7, LSL #2
+  189 00000268 E0811003        ADD              r1, r3      ;make r1
+  190 0000026C E5911000        LDR              r1, [r1]
+  191 00000270 E1A0E00F        MOV              lr, pc
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+  192 00000274 EA000094        B                DIV         ;Div that
+  193 00000278         
+  194 00000278 E5907018        LDR              r7, [r0, #24]
+  195 0000027C E5901010        LDR              r1, [r0, #16]
+  196 00000280 E1A04107        MOV              r4, r7, LSL #2
+  197 00000284 E0811004        ADD              r1, r4      ;make B's line
+  198 00000288 E5813000        STR              r3, [r1]    ;and save div value
+                                                             in line
+  199 0000028C         
+  200 0000028C E5907018        LDR              r7, [r0, #24] ;change x point
+  201 00000290 E2877001        ADD              r7, #1
+  202 00000294 E5807018        STR              r7, [r0, #24] ;save x point
+  203 00000298 EAFFFFE1        B                LINEDIV
+  204 0000029C         GAUSS3
+  205 0000029C E5908000        LDR              r8, [r0]    ;check line about a
+                                                            dd
+  206 000002A0 E1570008        CMP              r7, r8
+  207 000002A4 05904004        LDREQ            r4, [r0, #4]
+  208 000002A8 02844001        ADDEQ            r4, #1
+  209 000002AC 05804004        STREQ            r4, [r0, #4]
+  210 000002B0 0AFFFFBE        BEQ              GAUSS
+  211 000002B4         
+  212 000002B4 E59F2590        LDR              r2, address1
+  213 000002B8 E5903008        LDR              r3, [r0, #8]
+  214 000002BC E3A05000        MOV              r5, #0
+  215 000002C0 E1A0E00F        MOV              lr, pc
+  216 000002C4 EA000066        B                SIMPLEMUL   ;go to Cj0
+  217 000002C8         
+  218 000002C8 E590400C        LDR              r4, [r0, #12]
+  219 000002CC E1520004        CMP              r2, r4      ;don't minus from s
+                                                            ame row
+  220 000002D0 02877001        ADDEQ            r7, #1
+  221 000002D4 05807018        STREQ            r7, [r0, #24]
+  222 000002D8 0AFFFFEF        BEQ              GAUSS3      ;move to next line
+  223 000002DC         
+  224 000002DC E5903004        LDR              r3 ,[r0, #4]
+  225 000002E0 E1A03103        LSL              r3, #2
+  226 000002E4 E0822003        ADD              r2, r3      ;call Cji's address
+                                                            
+  227 000002E8         
+  228 000002E8 E5922000        LDR              r2, [r2]    ;call Cij's value
+  229 000002EC         
+  230 000002EC E580701C        STR              r7, [r0, #28]
+  231 000002F0 E3A09000        MOV              r9, #0
+  232 000002F4 E5809020        STR              r9, [r0, #32]
+  233 000002F8 E59FA540        LDR              r10, address3 ;save added line 
+                                                            address
+  234 000002FC E59FB540        LDR              r11, address4 ;save added sub l
+                                                            ine address
+  235 00000300 EAFFFFFF        B                MAKEMULLINE ;make mul line
+  236 00000304         
+  237 00000304         MAKEMULLINE
+  238 00000304 E590C000        LDR              r12, [r0]   ;check line's end
+  239 00000308 E159000C        CMP              r9, r12
+  240 0000030C 03A09000        MOVEQ            r9, #0
+  241 00000310 0A00001E        BEQ              ADDMULLINE
+  242 00000314         
+  243 00000314 E590100C        LDR              r1, [r0, #12] ;Cij value * add 
+                                                            line value
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+  244 00000318 E5909020        LDR              r9, [r0, #32]
+  245 0000031C E1A0C109        MOV              r12, r9, LSL #2
+  246 00000320 E081100C        ADD              r1, r12
+  247 00000324 E5911000        LDR              r1, [r1]
+  248 00000328 E1A0E00F        MOV              lr, pc
+  249 0000032C EA00009B        B                MUL
+  250 00000330         
+  251 00000330 E3530102        CMP              r3, #0x80000000 ;change sign bi
+                                                            t to minus
+  252 00000334 A2433102        SUBGE            r3, #0x80000000
+  253 00000338 B2833102        ADDLT            r3, #0x80000000
+  254 0000033C         
+  255 0000033C E5909020        LDR              r9, [r0, #32] ;save that value 
+                                                            in line
+  256 00000340 E59FA4F8        LDR              r10, address3
+  257 00000344 E1A0C109        MOV              r12, r9, LSL #2
+  258 00000348 E08AA00C        ADD              r10, r12
+  259 0000034C E58A3000        STR              r3, [r10]
+  260 00000350         
+  261 00000350 E5901010        LDR              r1, [r0, #16] ;Cij value * add 
+                                                            sub line value
+  262 00000354 E081100C        ADD              r1, r12
+  263 00000358 E5911000        LDR              r1, [r1]
+  264 0000035C E1A0E00F        MOV              lr, pc
+  265 00000360 EA00008E        B                MUL
+  266 00000364         
+  267 00000364 E3530102        CMP              r3, #0x80000000 ;change sub bit
+                                                             to minus
+  268 00000368 A2433102        SUBGE            r3, #0x80000000
+  269 0000036C B2833102        ADDLT            r3, #0x80000000
+  270 00000370         
+  271 00000370 E5909020        LDR              r9, [r0, #32] ;Cij value * add 
+                                                            sub line value
+  272 00000374 E59FA4C8        LDR              r10, address4
+  273 00000378 E1A0C109        MOV              r12, r9, LSL #2
+  274 0000037C E08AA00C        ADD              r10, r12
+  275 00000380 E58A3000        STR              r3, [r10]
+  276 00000384         
+  277 00000384 E2899001        ADD              r9, #1      ;save that value in
+                                                             line
+  278 00000388 E5809020        STR              r9, [r0, #32]
+  279 0000038C EAFFFFDC        B                MAKEMULLINE
+  280 00000390         ADDMULLINE
+  281 00000390 E590701C        LDR              r7, [r0, #28]
+  282 00000394 E5903008        LDR              r3, [r0, #8]
+  283 00000398 E59F24AC        LDR              r2, address1
+  284 0000039C E3A05000        MOV              r5, #0
+  285 000003A0 E1A0E00F        MOV              lr, pc
+  286 000003A4 EA00002E        B                SIMPLEMUL
+  287 000003A8 E5802024        STR              r2, [r0, #36] ;added first row 
+                                                            address
+  288 000003AC         
+  289 000003AC E590701C        LDR              r7, [r0, #28]
+  290 000003B0 E5903008        LDR              r3, [r0, #8]
+  291 000003B4 E59F2494        LDR              r2, Result_data
+  292 000003B8 E3A05000        MOV              r5, #0
+  293 000003BC E1A0E00F        MOV              lr, pc
+  294 000003C0 EA000027        B                SIMPLEMUL
+  295 000003C4 E5802028        STR              r2, [r0, #40] ;added second row
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+                                                             address
+  296 000003C8         
+  297 000003C8 E3A0A000        MOV              r10, #0
+  298 000003CC E580A02C        STR              r10, [r0, #44]
+  299 000003D0 E1A0E00F        MOV              lr, pc
+  300 000003D4 EAFFFFFF        B                ADDMULLINE2
+  301 000003D8         ADDMULLINE2
+  302 000003D8 E590B000        LDR              r11, [r0]   ;check add is end
+  303 000003DC E15A000B        CMP              r10, r11
+  304 000003E0 E590701C        LDR              r7, [r0, #28]
+  305 000003E4 02877001        ADDEQ            r7, #1
+  306 000003E8 0AFFFFAB        BEQ              GAUSS3      ;go to next line ab
+                                                            out add line
+  307 000003EC         
+  308 000003EC E5902024        LDR              r2, [r0, #36] ;find address abo
+                                                            ut added line
+  309 000003F0 E1A0310A        MOV              r3, r10, LSL #2
+  310 000003F4 E0822003        ADD              r2, r3
+  311 000003F8 E5922000        LDR              r2, [r2]    ;and read value abo
+                                                            ut address about ad
+                                                            ded line
+  312 000003FC         
+  313 000003FC E59F143C        LDR              r1, address3 ;address about mul
+                                                             line
+  314 00000400 E0811003        ADD              r1, r3
+  315 00000404 E5911000        LDR              r1, [r1]    ;and read value abo
+                                                            ut address about mu
+                                                            l line
+  316 00000408         
+  317 00000408 E1A0E00F        MOV              lr, pc
+  318 0000040C EA0000CE        B                ADD         ;add them
+  319 00000410         
+  320 00000410 E5902024        LDR              r2, [r0, #36] ;find address abo
+                                                            ut added value
+  321 00000414 E590A02C        LDR              r10, [r0, #44]
+  322 00000418 E1A0310A        MOV              r3, r10, LSL #2
+  323 0000041C E0822003        ADD              r2, r3
+  324 00000420 E582C000        STR              r12, [r2]   ;and save added val
+                                                            ue in appreriate ad
+                                                            dress
+  325 00000424         
+  326 00000424 E5902028        LDR              r2, [r0, #40] ;find address abo
+                                                            ut sub added line 
+  327 00000428 E0822003        ADD              r2, r3
+  328 0000042C E5922000        LDR              r2, [r2]    ;and read value abo
+                                                            ut address about su
+                                                            b added line
+  329 00000430         
+  330 00000430 E59F140C        LDR              r1, address4 ;address about sub
+                                                             mul line
+  331 00000434 E0811003        ADD              r1, r3
+  332 00000438 E5911000        LDR              r1, [r1]    ;and read value abo
+                                                            ut address about su
+                                                            b mul line
+  333 0000043C         
+  334 0000043C E1A0E00F        MOV              lr, pc
+  335 00000440 EA0000C1        B                ADD         ;add them
+  336 00000444         
+  337 00000444 E5902028        LDR              r2, [r0, #40] ;find address abo
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+                                                            ut sub added value
+  338 00000448 E590A02C        LDR              r10, [r0, #44]
+  339 0000044C E1A0310A        MOV              r3, r10, LSL #2
+  340 00000450 E0822003        ADD              r2, r3
+  341 00000454 E582C000        STR              r12, [r2]   ;and save sub added
+                                                             value in appreriat
+                                                            e address
+  342 00000458         
+  343 00000458 E28AA001        ADD              r10, #1     ;change x point
+  344 0000045C E580A02C        STR              r10, [r0, #44]
+  345 00000460 EAFFFFDC        B                ADDMULLINE2
+  346 00000464         SIMPLEMUL
+  347 00000464 E1570005        CMP              r7, r5      ;function to go Cio
+                                                            
+  348 00000468 01A0F00E        MOVEQ            pc, lr
+  349 0000046C E2855001        ADD              r5, #1
+  350 00000470 E0822003        ADD              r2, r3
+  351 00000474 EAFFFFFA        B                SIMPLEMUL
+  352 00000478         SIZECAL
+  353 00000478 E0855003        ADD              r5 ,r3      ;make number of ful
+                                                            l content
+  354 0000047C E2844001        ADD              r4, #1
+  355 00000480 E1540003        CMP              r4, r3
+  356 00000484 1AFFFFFB        BNE              SIZECAL
+  357 00000488 E1A0F00E        MOV              pc, lr
+  358 0000048C         INITLOOP
+  359 0000048C E4912004        LDR              r2, [r1], #4 ;put initial datas
+                                                             in main matrix
+  360 00000490 E4802004        STR              r2, [r0], #4
+  361 00000494 E2844001        ADD              r4, #1
+  362 00000498 E1540005        CMP              r4, r5
+  363 0000049C 1AFFFFFA        BNE              INITLOOP
+  364 000004A0 E1A0F00E        MOV              pc, lr
+  365 000004A4         INITLOOP2
+  366 000004A4 E3560000        CMP              r6, #0      ;put initial datas 
+                                                            in sub matrix
+  367 000004A8 13A02000        MOVNE            r2, #0      ;if i!=j, put 0
+  368 000004AC 03A025FE        MOVEQ            r2, #0x3f800000 ;if i!=j, put 1
+                                                            
+  369 000004B0 00866003        ADDEQ            r6, r6, r3
+  370 000004B4 12466001        SUBNE            r6, #1
+  371 000004B8 E4802004        STR              r2, [r0], #4
+  372 000004BC E2844001        ADD              r4, #1
+  373 000004C0 E1540005        CMP              r4, r5
+  374 000004C4 1AFFFFF6        BNE              INITLOOP2
+  375 000004C8 E1A0F00E        MOV              pc, lr
+  376 000004CC         DIV
+  377 000004CC E3A0C000        MOV              r12, #0     ;check number of sh
+                                                            ift
+  378 000004D0 E3510000        CMP              r1, #0      ; r1 is 0
+  379 000004D4 03A03000        MOVEQ            r3, #0x00000000
+  380 000004D8 01A0F00E        MOVEQ            pc, lr
+  381 000004DC E3520000        CMP              r2, #0      ; r2 is 0
+  382 000004E0 03A03000        MOVEQ            r3, #0x00000000
+  383 000004E4 01A0F00E        MOVEQ            pc, lr
+  384 000004E8         
+  385 000004E8 E1A03481        MOV              r3, r1, LSL #9 ;delete first nu
+                                                            mber's sign bit and
+                                                             exponent bits
+
+
+
+ARM Macro Assembler    Page 9 
+
+
+  386 000004EC E1A04482        MOV              r4, r2, LSL #9 ;delete second n
+                                                            umber's sign bit an
+                                                            d exponent bits
+  387 000004F0 E1A034A3        MOV              r3, r3, LSR #9 ;make first numb
+                                                            er's Mantissa bits
+  388 000004F4 E1A044A4        MOV              r4, r4, LSR #9 ;make second num
+                                                            ber's Mantissa bits
+                                                            
+  389 000004F8 E2833502        ADD              r3, r3, #0x800000 ;make first '
+                                                            1.Mantissa bits'
+  390 000004FC E2844502        ADD              r4, r4, #0x800000 ;make second 
+                                                            '1.Mantissa bits'
+  391 00000500         ;r3 is multiplicand and r4 is multiplier
+  392 00000500 E1A06003        MOV              r6, r3      ; C
+  393 00000504 E3A07000        MOV              r7, #0      ; D
+  394 00000508 E3A0B000        MOV              r11, #0
+  395 0000050C E3A0C000        MOV              r12, #0
+  396 00000510         DIVLOOP                              ;check if first val
+                                                            ue is smaller than 
+                                                            second value
+  397 00000510 E0468004        SUB              r8, r6, r4
+  398 00000514 E3580000        CMP              r8, #0
+  399 00000518 A0466004        SUBGE            r6, r4
+  400 0000051C A2877001        ADDGE            r7, #1
+  401 00000520 A3A0B001        MOVGE            r11, #1
+  402 00000524 A28CC001        ADDGE            r12, #1
+  403 00000528 E1A06086        LSL              r6, #1
+  404 0000052C E1A07087        LSL              r7, #1
+  405 00000530         DIVLOOP2                             ;check div result u
+                                                            se minus
+  406 00000530 E0468004        SUB              r8, r6, r4
+  407 00000534 E3580000        CMP              r8, #0
+  408 00000538 A0466004        SUBGE            r6, r4
+  409 0000053C A2877001        ADDGE            r7, #1
+  410 00000540 E28CC001        ADD              r12, #1
+  411 00000544 E35C0018        CMP              r12, #24
+  412 00000548 11A06086        LSLNE            r6, #1
+  413 0000054C 11A07087        LSLNE            r7, #1
+  414 00000550 1AFFFFF6        BNE              DIVLOOP2
+  415 00000554         ENDDIV
+  416 00000554 E1A03FA1        MOV              r3, r1, LSR #31 ;first number's
+                                                             sign bit
+  417 00000558 E1A06FA2        MOV              r6, r2, LSR #31 ;second number'
+                                                            s sign bit
+  418 0000055C         
+  419 0000055C E1A04081        MOV              r4, r1, LSL #1 ;delete first nu
+                                                            mber's sign bit
+  420 00000560 E1A08082        MOV              r8, r2, LSL #1 ;delete second n
+                                                            umber's sign bit
+  421 00000564 E1A04C24        MOV              r4, r4, LSR #24 ;make first num
+                                                            ber's Exponent bits
+                                                             
+  422 00000568 E1A08C28        MOV              r8, r8, LSR #24 ;make second nu
+                                                            mber's Exponent bit
+                                                            s
+  423 0000056C         
+  424 0000056C E1530006        CMP              r3, r6      ;
+  425 00000570 E3A03001        MOV              r3, #1      ;
+  426 00000574 03A03000        MOVEQ            r3, #0      ; make sign of mul 
+
+
+
+ARM Macro Assembler    Page 10 
+
+
+                                                            calculation result
+  427 00000578 E0444008        SUB              r4, r4, r8  ;make exponent of m
+                                                            ul calculation resu
+                                                            lt
+  428 0000057C E284407F        ADD              r4, #127
+  429 00000580 E35B0000        CMP              r11, #0     ;case of (r2 is big
+                                                            ger than r1)
+  430 00000584 02444001        SUBEQ            r4, #1
+  431 00000588         
+  432 00000588 E2477502        SUB              r7,r7, #0x800000
+  433 0000058C         
+  434 0000058C E1A03403        LSL              r3, #8
+  435 00000590 E0833004        ADD              r3, r4
+  436 00000594 E1A03B83        LSL              r3, #23
+  437 00000598 E0833007        ADD              r3, r7
+  438 0000059C E1A0F00E        MOV              pc, lr
+  439 000005A0         MUL
+  440 000005A0 E3A0C000        MOV              r12, #0     ;check number of sh
+                                                            ift
+  441 000005A4 E3510000        CMP              r1, #0      ; r1 is 0
+  442 000005A8 03A03000        MOVEQ            r3, #0x00000000
+  443 000005AC 01A0F00E        MOVEQ            pc,lr
+  444 000005B0 E3520000        CMP              r2, #0      ; r2 is 0
+  445 000005B4 03A03000        MOVEQ            r3, #0x00000000
+  446 000005B8 01A0F00E        MOVEQ            pc,lr
+  447 000005BC         
+  448 000005BC E1A03481        MOV              r3, r1, LSL #9 ;delete first nu
+                                                            mber's sign bit and
+                                                             exponent bits
+  449 000005C0 E1A04482        MOV              r4, r2, LSL #9 ;delete second n
+                                                            umber's sign bit an
+                                                            d exponent bits
+  450 000005C4 E1A034A3        MOV              r3, r3, LSR #9 ;make first numb
+                                                            er's Mantissa bits
+  451 000005C8 E1A044A4        MOV              r4, r4, LSR #9 ;make second num
+                                                            ber's Mantissa bits
+                                                            
+  452 000005CC E2833502        ADD              r3, r3, #0x800000 ;make first '
+                                                            1.Mantissa bits'
+  453 000005D0 E2844502        ADD              r4, r4, #0x800000 ;make second 
+                                                            '1.Mantissa bits'
+  454 000005D4 E3A05402        MOV              r5, #0x2000000
+  455 000005D8 E0455003        SUB              r5, r5, r3  ; make -r3
+  456 000005DC         ;r3 is multiplicand and r4 is multiplier
+  457 000005DC E3A06000        MOV              r6, #0      ; U
+  458 000005E0 E3A07000        MOV              r7, #0      ; V
+  459 000005E4 E1A08004        MOV              r8, r4      ; X
+  460 000005E8 E3A09000        MOV              r9, #0      ; X-1
+  461 000005EC E1A0AF88        MOV              r10, r8, LSL #31 ;X's last bit
+  462 000005F0 E35A0000        CMP              r10, #0     ;
+  463 000005F4 0A000000        BEQ              MULLOOP
+  464 000005F8 EA000013        B                MULLOOP2
+  465 000005FC         MULLOOP
+  466 000005FC E3590000        CMP              r9, #0
+  467 00000600 10836006        ADDNE            r6, r3, r6  ;check 01 so add th
+                                                            em
+  468 00000604 11A06386        MOVNE            r6, r6, LSL #7 ;delete overflow
+                                                             bit
+  469 00000608 11A063A6        MOVNE            r6, r6, LSR #7 ;
+
+
+
+ARM Macro Assembler    Page 11 
+
+
+  470 0000060C E1A070A7        MOV              r7, r7, LSR #1 ;shift V
+  471 00000610 E1A0BF86        MOV              r11, r6, LSL #31 ;U's last bit
+  472 00000614 E35B0000        CMP              r11, #0     ;check last bit for
+                                                             shift
+  473 00000618 12877401        ADDNE            r7, r7,#0x1000000 ;if last bit 
+                                                            is 1, do V+0x100000
+                                                            0000000000000000000
+                                                             
+  474 0000061C E1A060C6        MOV              r6, r6, ASR #1 ;shift U
+  475 00000620         
+  476 00000620 E1A0900A        MOV              r9, r10     ;
+  477 00000624 E1A080A8        MOV              r8, r8, LSR #1 ;shift X
+  478 00000628 E3590000        CMP              r9, #0      ;
+  479 0000062C 12888401        ADDNE            r8, r8,#0x1000000
+  480 00000630 E28CC001        add              r12, r12, #1 ;
+  481 00000634         
+  482 00000634 E35C0019        CMP              r12, #25
+  483 00000638 03A0C000        MOVEQ            r12, #0
+  484 0000063C 0A000019        BEQ              SubSTARTMUL
+  485 00000640 E1A0AF88        MOV              r10, r8, LSL #31 ;X's last bit
+  486 00000644 E35A0000        CMP              r10, #0
+  487 00000648 0AFFFFEB        BEQ              MULLOOP
+  488 0000064C         ;B MULLOOP2
+  489 0000064C         MULLOOP2
+  490 0000064C E3590000        CMP              r9, #0
+  491 00000650         
+  492 00000650 00856006        ADDEQ            r6, r5, r6  ;check 01 so add th
+                                                            em
+  493 00000654 01A06386        MOVEQ            r6, r6, LSL #7 ;delete overflow
+                                                             bit
+  494 00000658 01A063A6        MOVEQ            r6, r6, LSR #7 ;
+  495 0000065C E1A070A7        MOV              r7, r7, LSR #1 ;shift V
+  496 00000660 E1A0BF86        MOV              r11, r6, LSL #31 ;U's last bit
+  497 00000664 E35B0000        CMP              r11, #0     ;check last bit for
+                                                             shift
+  498 00000668 12877401        ADDNE            r7, r7,#0x1000000 ;if last bit 
+                                                            is 1, do V+0x100000
+                                                            000000000000000000 
+                                                            
+  499 0000066C E3560401        cmp              r6, #0x1000000
+  500 00000670 E1A060C6        MOV              r6, r6, ASR #1 ;shift U
+  501 00000674 A2866401        ADDGE            r6, #0x1000000
+  502 00000678         
+  503 00000678 E1A0900A        MOV              r9, r10     ;
+  504 0000067C E1A080A8        MOV              r8, r8, LSR #1 ;shift X
+  505 00000680 E3590000        CMP              r9, #0      ;
+  506 00000684 12888401        ADDNE            r8, r8,#0x1000000
+  507 00000688 E28CC001        add              r12, r12, #1 ;
+  508 0000068C         
+  509 0000068C E35C0019        CMP              r12, #25
+  510 00000690 03A0C000        MOVEQ            r12, #0
+  511 00000694 0A000003        BEQ              SubSTARTMUL
+  512 00000698 E1A0AF88        MOV              r10, r8, LSL #31 ;X's last bit
+  513 0000069C E35A0000        CMP              r10, #0
+  514 000006A0 0AFFFFD5        BEQ              MULLOOP
+  515 000006A4 EAFFFFE8        B                MULLOOP2
+  516 000006A8         SubSTARTMUL
+  517 000006A8 E1A06386        MOV              r6, r6, LSL #7 ;delete overflow
+                                                             bit
+
+
+
+ARM Macro Assembler    Page 12 
+
+
+  518 000006AC E1A063A6        MOV              r6, r6, LSR #7 ;
+  519 000006B0         MULNORMALIZE
+  520 000006B0 E3560000        CMP              r6, #0
+  521 000006B4 01A09FA6        MOVEQ            r9, r6, LSR #31
+  522 000006B8 0A000006        BEQ              MULNORMALIZE2
+  523 000006BC 11A070A7        MOVNE            r7, r7, LSR #1 ;shift V
+  524 000006C0 11A0BF86        MOVNE            r11, r6, LSL #31 ;U's last bit
+  525 000006C4 E35B0000        CMP              r11, #0     ;check last bit for
+                                                             shift
+  526 000006C8 12877401        ADDNE            r7, r7,#0x1000000 ;if last bit 
+                                                            is 1, do V+0x100000
+                                                            000000000000000000 
+                                                            
+  527 000006CC E1A060A6        MOV              r6, r6, LSR #1 ;shift U
+  528 000006D0 E28CC001        ADD              r12, #1
+  529 000006D4 EAFFFFF5        B                MULNORMALIZE
+  530 000006D8         MULNORMALIZE2
+  531 000006D8 E3570401        CMP              r7, #0x1000000 ;check r5 is nor
+                                                            malized (side of un
+                                                            der)
+  532 000006DC A28CC001        ADDGE            r12, #1     ;do exponent bit-1
+  533 000006E0 A1A070A7        LSRGE            r7, #1      ;shift left mantiss
+                                                            a bits
+  534 000006E4 AAFFFFFB        BGE              MULNORMALIZE2 ;do again to chec
+                                                            k r5 is normalized
+  535 000006E8         
+  536 000006E8 BAFFFFFF        BLT              MULNORMALIZE3
+  537 000006EC         MULNORMALIZE3
+  538 000006EC E3570502        CMP              r7, #0x800000
+  539 000006F0 B24CC001        SUBLT            r12, #1
+  540 000006F4 B1A07087        LSLLT            r7, #1
+  541 000006F8 BAFFFFFB        BLT              MULNORMALIZE3
+  542 000006FC         ENDMUL
+  543 000006FC E1A03FA1        MOV              r3, r1, LSR #31 ;first number's
+                                                             sign bit
+  544 00000700 E1A06FA2        MOV              r6, r2, LSR #31 ;second number'
+                                                            s sign bit
+  545 00000704         
+  546 00000704 E1A04081        MOV              r4, r1, LSL #1 ;delete first nu
+                                                            mber's sign bit
+  547 00000708 E1A08082        MOV              r8, r2, LSL #1 ;delete second n
+                                                            umber's sign bit
+  548 0000070C E1A04C24        MOV              r4, r4, LSR #24 ;make first num
+                                                            ber's Exponent bits
+                                                             
+  549 00000710 E1A08C28        MOV              r8, r8, LSR #24 ;make second nu
+                                                            mber's Exponent bit
+                                                            s
+  550 00000714         
+  551 00000714 E1530006        CMP              r3, r6      ;
+  552 00000718 E3A03001        MOV              r3, #1      ;
+  553 0000071C 03A03000        MOVEQ            r3, #0      ; make sign of mul 
+                                                            calculation result
+  554 00000720 E0844008        ADD              r4, r4, r8  ;make exponent of m
+                                                            ul calculation resu
+                                                            lt
+  555 00000724 E2444097        SUB              r4, #151
+  556 00000728 E084400C        ADD              r4, r12
+  557 0000072C E1A04C04        LSL              r4, #24
+
+
+
+ARM Macro Assembler    Page 13 
+
+
+  558 00000730 E1A04C24        LSR              r4, #24
+  559 00000734         
+  560 00000734 E1A03403        LSL              r3, #8
+  561 00000738 E0833004        ADD              r3, r4
+  562 0000073C E1A03B83        LSL              r3, #23
+  563 00000740 E0833007        ADD              r3, r7
+  564 00000744 E0833009        ADD              r3, r9
+  565 00000748 E1A0F00E        MOV              pc, lr
+  566 0000074C         ADD
+  567 0000074C E1A03FA1        MOV              r3, r1, LSR #31 ;first number's
+                                                             sign bit
+  568 00000750 E1A06FA2        MOV              r6, r2, LSR #31 ;second number'
+                                                            s sign bit
+  569 00000754         
+  570 00000754 E1A04081        MOV              r4, r1, LSL #1 ;delete first nu
+                                                            mber's sign bit
+  571 00000758 E3540000        CMP              r4, #0
+  572 0000075C 01A0C002        MOVEQ            r12,r2
+  573 00000760 01A0F00E        MOVEQ            pc, lr
+  574 00000764 E1A07082        MOV              r7, r2, LSL #1 ;delete second n
+                                                            umber's sign bit
+  575 00000768 E3570000        CMP              r7, #0
+  576 0000076C 01A0C001        MOVEQ            r12,r1
+  577 00000770 01A0F00E        MOVEQ            pc,lr
+  578 00000774 E1A04C24        MOV              r4, r4, LSR #24 ;make first num
+                                                            ber's Exponent bits
+                                                             
+  579 00000778 E1A07C27        MOV              r7, r7, LSR #24 ;make second nu
+                                                            mber's Exponent bit
+                                                            s
+  580 0000077C         
+  581 0000077C E1A05481        MOV              r5, r1, LSL #9 ;delete first nu
+                                                            mber's sign bit and
+                                                             exponent bits
+  582 00000780 E1A08482        MOV              r8, r2, LSL #9 ;delete second n
+                                                            umber's sign bit an
+                                                            d exponent bits
+  583 00000784 E1A054A5        MOV              r5, r5, LSR #9 ;make first numb
+                                                            er's Mantissa bits
+  584 00000788 E1A084A8        MOV              r8, r8, LSR #9 ;make second num
+                                                            ber's Mantissa bits
+                                                            
+  585 0000078C E2855502        ADD              r5, r5, #0x800000 ;make first '
+                                                            1.Mantissa bits'
+  586 00000790 E2888502        ADD              r8, r8, #0x800000 ;make second 
+                                                            '1.Mantissa bits'
+  587 00000794 E1A05385        LSL              r5, #7      ;
+  588 00000798 E1A08388        LSL              r8, #7
+  589 0000079C         
+  590 0000079C E1540007        CMP              r4, r7      ;compare exponent b
+                                                            it
+  591 000007A0 A0449007        SUBGE            r9, r4, r7  ;big exponent bit -
+                                                             small exponent bit
+                                                            
+  592 000007A4 A1A0B004        MOVGE            r11, r4     ;save big exponent 
+                                                            bit
+  593 000007A8 B0479004        SUBLT            r9, r7, r4  ;big exponent bit -
+                                                             small exponent bit
+                                                            
+
+
+
+ARM Macro Assembler    Page 14 
+
+
+  594 000007AC B1A0B007        MOVLT            r11, r7     ;save big exponent 
+                                                            bit
+  595 000007B0 A1A08938        LSRGE            r8, r9      ;shift small expone
+                                                            nt bit's Mantissa v
+                                                            alue as shift num
+  596 000007B4 B1A05935        LSRLT            r5, r9      ;shift small expone
+                                                            nt bit's Mantissa v
+                                                            alue as shift num
+  597 000007B8         
+  598 000007B8 E1550008        CMP              r5, r8      ;check mantissa val
+                                                            ue when they have d
+                                                            ifferent sign bit
+  599 000007BC A045A008        SUBGE            r10, r5, r8 ;if r5 is bigger th
+                                                            an r8
+  600 000007C0 B048A005        SUBLT            r10, r8, r5 ;if r8 is bigger th
+                                                            an r5
+  601 000007C4         
+  602 000007C4 E1530006        CMP              r3, r6      ;check sign bit
+  603 000007C8 0085A008        ADDEQ            r10, r5, r8 ;if they have same 
+                                                            sign bit, add manti
+                                                            ssa values
+  604 000007CC         
+  605 000007CC E1A0900A        MOV              r9, r10
+  606 000007D0 E1A09329        LSR              r9, #6
+  607 000007D4 E1A09F89        LSL              r9, #31
+  608 000007D8 E1A09FA9        LSR              r9, #31
+  609 000007DC E3590001        CMP              r9, #0x00000001
+  610 000007E0 E1A0A3AA        LSR              r10, #7
+  611 000007E4         
+  612 000007E4 028AA001        ADDEQ            r10, #1
+  613 000007E8         
+  614 000007E8 E35A0000        CMP              r10, #0
+  615 000007EC 03A0C000        MOVEQ            r12, #0
+  616 000007F0 01A0F00E        MOVEQ            pc, lr
+  617 000007F4         ADDNormalize
+  618 000007F4 E35A0502        CMP              r10, #0x800000 ;check r5 is nor
+                                                            malized (side of un
+                                                            der)
+  619 000007F8 B24BB001        SUBLT            r11, #1     ;do exponent bit-1
+  620 000007FC B1A0A08A        LSLLT            r10, #1     ;shift left mantiss
+                                                            a bits
+  621 00000800 BAFFFFFB        BLT              ADDNormalize ;do again to check
+                                                             r5 is normalized
+  622 00000804         
+  623 00000804 E35A0401        CMP              r10, #0x1000000 ;check r5 is no
+                                                            rmalizd (side of up
+                                                            per)
+  624 00000808 A28BB001        ADDGE            r11, #1     ;do exponent bit+1
+  625 0000080C A1A0A0AA        LSRGE            r10, #1     ;shift right mantis
+                                                            sa bits
+  626 00000810         GOADDEND                             ;go back to place t
+                                                            hat call Normalize
+  627 00000810 E1530006        CMP              r3, r6
+  628 00000814 01A0CF83        MOVEQ            r12, r3, LSL #31 ;when sign bit
+                                                            s are same
+  629 00000818         
+  630 00000818 11540007        CMPNE            r4, r7
+  631 0000081C C1A0CF83        MOVGT            r12, r3, LSL #31 ;one sign bit 
+                                                            have bigger value t
+
+
+
+ARM Macro Assembler    Page 15 
+
+
+                                                            han another one
+  632 00000820 B1A0CF86        MOVLT            r12, r6, LSL #31 ;put sign bit
+  633 00000824         
+  634 00000824 01550008        CMPEQ            r5, r8
+  635 00000828 A1A0CF83        MOVGE            r12, r3, LSL #31 ;one sign bit 
+                                                            have bigger value t
+                                                            han another one
+  636 0000082C B1A0CF86        MOVLT            r12, r6, LSL #31 ;put sign bit
+  637 00000830         
+  638 00000830 E08CCB8B        ADD              r12, r12, r11, LSL #23 
+                                                            ;put exponent bit
+  639 00000834         
+  640 00000834 E24AA502        SUB              r10, #0x800000 ;sub value that 
+                                                            mean '1'
+  641 00000838 E08CC00A        ADD              r12, r12, r10
+  642 0000083C         
+  643 0000083C E1A0F00E        MOV              pc, lr
+  644 00000840 50000000 
+                       address3
+                               DCD              &50000000   ;save mul line
+  645 00000844 70000000 
+                       address4
+                               DCD              &70000000   ;save sub mul line
+  646 00000848         
+  647 00000848 80000000 
+                       address0
+                               DCD              &80000000
+  648 0000084C 40000000 
+                       address1
+                               DCD              &40000000
+  649 00000850 60000000 
+                       Result_data
+                               DCD              &60000000
+  650 00000854         
+  651 00000854 00000004 
+                       Matrix_data
+                               DCD              4
+  652 00000858 00000000        DCD              2_00000000000000000000000000000
+000
+  653 0000085C 41000000        DCD              2_01000001000000000000000000000
+000
+  654 00000860 43680000        DCD              2_01000011011010000000000000000
+000
+  655 00000864 41440000        DCD              2_01000001010001000000000000000
+000
+  656 00000868 41E00000        DCD              2_01000001111000000000000000000
+000
+  657 0000086C 42B00000        DCD              2_01000010101100000000000000000
+000
+  658 00000870 C1180000        DCD              2_11000001000110000000000000000
+000
+  659 00000874 C2380000        DCD              2_11000010001110000000000000000
+000
+  660 00000878 C2880000        DCD              2_11000010100010000000000000000
+000
+  661 0000087C 44780000        DCD              2_01000100011110000000000000000
+000
+  662 00000880 00000000        DCD              2_00000000000000000000000000000
+000
+
+
+
+ARM Macro Assembler    Page 16 
+
+
+  663 00000884 C2780000        DCD              2_11000010011110000000000000000
+000
+  664 00000888 41C80000        DCD              2_01000001110010000000000000000
+000
+  665 0000088C C2B80000        DCD              2_11000010101110000000000000000
+000
+  666 00000890 C4100000        DCD              2_11000100000100000000000000000
+000
+  667 00000894 43740000        DCD              2_01000011011101000000000000000
+000
+  668 00000898         
+  669 00000898         
+  670 00000898         GOEND
+  671 00000898 E3A0F000        MOV              pc, #0      ;Program end
+  672 0000089C                 END
+              00000000 
+Command Line: --debug --xref --diag_suppress=9931 --cpu=ARM9E --apcs=interwork 
+--depend=.\objects\test1.d -o.\objects\test1.o -IC:\Keil_v5\ARM\RV31\INC -IC:\K
+eil_v5\ARM\CMSIS\Include --predefine="__EVAL SETA 1" --predefine="__UVISION_VER
+SION SETA 528" --list=.\listings\test1.lst test1.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+ADD 0000074C
+
+Symbol: ADD
+   Definitions
+      At line 566 in file test1.s
+   Uses
+      At line 70 in file test1.s
+      At line 90 in file test1.s
+      At line 318 in file test1.s
+      At line 335 in file test1.s
+
+ADDMULLINE 00000390
+
+Symbol: ADDMULLINE
+   Definitions
+      At line 280 in file test1.s
+   Uses
+      At line 241 in file test1.s
+Comment: ADDMULLINE used once
+ADDMULLINE2 000003D8
+
+Symbol: ADDMULLINE2
+   Definitions
+      At line 301 in file test1.s
+   Uses
+      At line 300 in file test1.s
+      At line 345 in file test1.s
+
+ADDNormalize 000007F4
+
+Symbol: ADDNormalize
+   Definitions
+      At line 617 in file test1.s
+   Uses
+      At line 621 in file test1.s
+Comment: ADDNormalize used once
+ADDline 000000DC
+
+Symbol: ADDline
+   Definitions
+      At line 64 in file test1.s
+   Uses
+      At line 59 in file test1.s
+      At line 110 in file test1.s
+
+ARMex 00000000
+
+Symbol: ARMex
+   Definitions
+      At line 1 in file test1.s
+   Uses
+      None
+Comment: ARMex unused
+DIV 000004CC
+
+Symbol: DIV
+   Definitions
+      At line 376 in file test1.s
+   Uses
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 179 in file test1.s
+      At line 192 in file test1.s
+
+DIVLOOP 00000510
+
+Symbol: DIVLOOP
+   Definitions
+      At line 396 in file test1.s
+   Uses
+      None
+Comment: DIVLOOP unused
+DIVLOOP2 00000530
+
+Symbol: DIVLOOP2
+   Definitions
+      At line 405 in file test1.s
+   Uses
+      At line 414 in file test1.s
+Comment: DIVLOOP2 used once
+ENDDIV 00000554
+
+Symbol: ENDDIV
+   Definitions
+      At line 415 in file test1.s
+   Uses
+      None
+Comment: ENDDIV unused
+ENDMUL 000006FC
+
+Symbol: ENDMUL
+   Definitions
+      At line 542 in file test1.s
+   Uses
+      None
+Comment: ENDMUL unused
+ENDSORT 00000194
+
+Symbol: ENDSORT
+   Definitions
+      At line 122 in file test1.s
+   Uses
+      At line 47 in file test1.s
+Comment: ENDSORT used once
+FINDline 000000A8
+
+Symbol: FINDline
+   Definitions
+      At line 49 in file test1.s
+   Uses
+      At line 41 in file test1.s
+      At line 63 in file test1.s
+
+GAUSS 000001B0
+
+Symbol: GAUSS
+   Definitions
+      At line 130 in file test1.s
+   Uses
+      At line 210 in file test1.s
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Relocatable symbols
+
+Comment: GAUSS used once
+GAUSS2 00000208
+
+Symbol: GAUSS2
+   Definitions
+      At line 160 in file test1.s
+   Uses
+      At line 146 in file test1.s
+      At line 167 in file test1.s
+
+GAUSS3 0000029C
+
+Symbol: GAUSS3
+   Definitions
+      At line 204 in file test1.s
+   Uses
+      At line 172 in file test1.s
+      At line 222 in file test1.s
+      At line 306 in file test1.s
+
+GOADDEND 00000810
+
+Symbol: GOADDEND
+   Definitions
+      At line 626 in file test1.s
+   Uses
+      None
+Comment: GOADDEND unused
+GOEND 00000898
+
+Symbol: GOEND
+   Definitions
+      At line 670 in file test1.s
+   Uses
+      At line 137 in file test1.s
+Comment: GOEND used once
+INITLOOP 0000048C
+
+Symbol: INITLOOP
+   Definitions
+      At line 358 in file test1.s
+   Uses
+      At line 16 in file test1.s
+      At line 363 in file test1.s
+
+INITLOOP2 000004A4
+
+Symbol: INITLOOP2
+   Definitions
+      At line 365 in file test1.s
+   Uses
+      At line 21 in file test1.s
+      At line 374 in file test1.s
+
+LINECHANGE 00000068
+
+Symbol: LINECHANGE
+   Definitions
+      At line 30 in file test1.s
+
+
+
+ARM Macro Assembler    Page 4 Alphabetic symbol ordering
+Relocatable symbols
+
+   Uses
+      At line 48 in file test1.s
+      At line 121 in file test1.s
+
+LINEDIV 00000224
+
+Symbol: LINEDIV
+   Definitions
+      At line 168 in file test1.s
+   Uses
+      At line 157 in file test1.s
+      At line 203 in file test1.s
+
+Linefinish 0000016C
+
+Symbol: Linefinish
+   Definitions
+      At line 111 in file test1.s
+   Uses
+      At line 109 in file test1.s
+Comment: Linefinish used once
+MAKEMULLINE 00000304
+
+Symbol: MAKEMULLINE
+   Definitions
+      At line 237 in file test1.s
+   Uses
+      At line 235 in file test1.s
+      At line 279 in file test1.s
+
+MUL 000005A0
+
+Symbol: MUL
+   Definitions
+      At line 439 in file test1.s
+   Uses
+      At line 249 in file test1.s
+      At line 265 in file test1.s
+
+MULLOOP 000005FC
+
+Symbol: MULLOOP
+   Definitions
+      At line 465 in file test1.s
+   Uses
+      At line 463 in file test1.s
+      At line 487 in file test1.s
+      At line 514 in file test1.s
+
+MULLOOP2 0000064C
+
+Symbol: MULLOOP2
+   Definitions
+      At line 489 in file test1.s
+   Uses
+      At line 464 in file test1.s
+      At line 515 in file test1.s
+
+MULNORMALIZE 000006B0
+
+
+
+ARM Macro Assembler    Page 5 Alphabetic symbol ordering
+Relocatable symbols
+
+
+Symbol: MULNORMALIZE
+   Definitions
+      At line 519 in file test1.s
+   Uses
+      At line 529 in file test1.s
+Comment: MULNORMALIZE used once
+MULNORMALIZE2 000006D8
+
+Symbol: MULNORMALIZE2
+   Definitions
+      At line 530 in file test1.s
+   Uses
+      At line 522 in file test1.s
+      At line 534 in file test1.s
+
+MULNORMALIZE3 000006EC
+
+Symbol: MULNORMALIZE3
+   Definitions
+      At line 537 in file test1.s
+   Uses
+      At line 536 in file test1.s
+      At line 541 in file test1.s
+
+Matrix_data 00000854
+
+Symbol: Matrix_data
+   Definitions
+      At line 651 in file test1.s
+   Uses
+      At line 5 in file test1.s
+Comment: Matrix_data used once
+Result_data 00000850
+
+Symbol: Result_data
+   Definitions
+      At line 649 in file test1.s
+   Uses
+      At line 17 in file test1.s
+      At line 28 in file test1.s
+      At line 29 in file test1.s
+      At line 40 in file test1.s
+      At line 120 in file test1.s
+      At line 133 in file test1.s
+      At line 291 in file test1.s
+
+SIMPLEMUL 00000464
+
+Symbol: SIMPLEMUL
+   Definitions
+      At line 346 in file test1.s
+   Uses
+      At line 216 in file test1.s
+      At line 286 in file test1.s
+      At line 294 in file test1.s
+      At line 351 in file test1.s
+
+SIZECAL 00000478
+
+
+
+ARM Macro Assembler    Page 6 Alphabetic symbol ordering
+Relocatable symbols
+
+
+Symbol: SIZECAL
+   Definitions
+      At line 352 in file test1.s
+   Uses
+      At line 12 in file test1.s
+      At line 356 in file test1.s
+
+SubSTARTMUL 000006A8
+
+Symbol: SubSTARTMUL
+   Definitions
+      At line 516 in file test1.s
+   Uses
+      At line 484 in file test1.s
+      At line 511 in file test1.s
+
+address0 00000848
+
+Symbol: address0
+   Definitions
+      At line 647 in file test1.s
+   Uses
+      At line 7 in file test1.s
+      At line 33 in file test1.s
+      At line 71 in file test1.s
+      At line 92 in file test1.s
+      At line 112 in file test1.s
+      At line 123 in file test1.s
+      At line 131 in file test1.s
+
+address1 0000084C
+
+Symbol: address1
+   Definitions
+      At line 648 in file test1.s
+   Uses
+      At line 4 in file test1.s
+      At line 14 in file test1.s
+      At line 26 in file test1.s
+      At line 27 in file test1.s
+      At line 119 in file test1.s
+      At line 124 in file test1.s
+      At line 132 in file test1.s
+      At line 142 in file test1.s
+      At line 212 in file test1.s
+      At line 283 in file test1.s
+
+address3 00000840
+
+Symbol: address3
+   Definitions
+      At line 644 in file test1.s
+   Uses
+      At line 233 in file test1.s
+      At line 256 in file test1.s
+      At line 313 in file test1.s
+
+address4 00000844
+
+
+
+ARM Macro Assembler    Page 7 Alphabetic symbol ordering
+Relocatable symbols
+
+
+Symbol: address4
+   Definitions
+      At line 645 in file test1.s
+   Uses
+      At line 234 in file test1.s
+      At line 272 in file test1.s
+      At line 330 in file test1.s
+
+start 00000000
+
+Symbol: start
+   Definitions
+      At line 3 in file test1.s
+   Uses
+      None
+Comment: start unused
+40 symbols
+374 symbols in table
